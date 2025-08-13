@@ -17,7 +17,8 @@ Generate Python SDKs from OpenAPI 3.x specifications with Pydantic v2 models and
 - **Pydantic v2 Models** - Generated using datamodel-code-generator for accuracy
 - **Advanced Type System** - Precise return types (Pet, list[Pet], Order) instead of Any
 - **Automatic Model Serialization** - Seamless Pydantic model → JSON conversion
-- **Customizable Client Class** - Configure client class name (e.g., "PetStore", "ApiClient")
+- **Python Naming Conventions** - camelCase parameters converted to snake_case (petId → pet_id)
+- **Customizable Client Class** - Configure client class name (e.g., "PetStore", "ApiClient")  
 - **Multiple Authentication** - Bearer token, API key, and Basic auth
 - **YAML Configuration** - Manage generation settings in config files
 - **Code Organization** - Operations grouped by tags, clean structure
@@ -55,6 +56,12 @@ With configuration file:
 
 ```bash
 pydantic-openapi-sdk generate --config configs/petstore.yaml
+```
+
+**Note**: For clean regeneration (recommended), remove the existing output directory first:
+
+```bash
+rm -rf ./examples/gen && pydantic-openapi-sdk generate --config configs/petstore.yaml
 ```
 
 ### 2. Use Generated SDK
@@ -159,13 +166,11 @@ petstore/
 The generator creates precise type annotations by analyzing OpenAPI schemas:
 
 ```python
-# Instead of generic Any types:
-def get_pet_by_id(client: Client, petId: int) -> Any:  # ❌ Old approach
-
-# You get specific model types:
-def get_pet_by_id(client: PetStore, petId: int) -> Pet:  # ✅ New approach
-def find_pets_by_status(client: PetStore, status: str) -> list[Pet]:  # ✅ Array support
-def get_inventory(client: PetStore) -> dict[str, int]:  # ✅ Object types
+# Generated functions with precise types and snake_case parameters:
+def get_pet_by_id(client: PetStore, pet_id: int) -> Pet:
+def find_pets_by_status(client: PetStore, status: str) -> list[Pet]:
+def get_order_by_id(client: PetStore, order_id: int) -> Order:
+def get_inventory(client: PetStore) -> dict[str, int]:
 ```
 
 ### Automatic Model Detection
@@ -175,6 +180,25 @@ The generator analyzes generated Pydantic models to ensure type consistency:
 - **Schema Reference Resolution**: `#/components/schemas/Pet` → `Pet` class
 - **Name Conflict Handling**: `Status` vs `Status1` enum conflicts resolved automatically  
 - **Validation Fallbacks**: Unknown types safely default to `Any`
+
+### Python Naming Conventions
+
+The generator automatically converts OpenAPI parameter names to Python snake_case while preserving original names for API requests:
+
+```python
+# OpenAPI spec has: /pet/{petId}
+# Generated function uses Python conventions:
+def get_pet_by_id(client: PetStore, pet_id: int) -> Pet:  # snake_case parameter
+    path = f"/pet/{pet_id}"  # Uses Python variable
+    # But API request still uses: GET /pet/123 (original spec preserved)
+
+# Query parameters work the same way:
+def update_pet_with_form(client: PetStore, pet_id: int, name: str = None) -> Pet:
+    params = {}
+    if name is not None:
+        params["name"] = name  # Original API parameter name preserved
+    return client.request("post", f"/pet/{pet_id}", params=params)
+```
 
 ### Smart Serialization
 
@@ -238,16 +262,17 @@ client = PetStore(
 from petstore.api import pet, store
 from petstore.models import Pet, Category, Tag
 
-# ✅ Precise return types instead of Any
+# Precise return types with snake_case parameters
 pets: list[Pet] = pet.find_pets_by_status(client, status="available")
-single_pet: Pet = pet.get_pet_by_id(client, petId=1)
+single_pet: Pet = pet.get_pet_by_id(client, pet_id=1)
+order: Order = store.get_order_by_id(client, order_id=123)
 inventory: dict[str, int] = store.get_inventory(client)
 
-# ✅ Automatic Pydantic model serialization
+# Automatic Pydantic model serialization
 new_pet = Pet(name="Max", photoUrls=["photo.jpg"])
 result: Pet = pet.add_pet(client, body=new_pet)  # Automatically converts to JSON
 
-# ✅ IDE autocompletion and type checking
+# IDE autocompletion and type checking
 for p in pets:
     print(f"Pet: {p.name}")  # IDE knows p is Pet, not Any
     if p.category:
@@ -282,7 +307,7 @@ from petstore import ApiError
 from petstore.api import pet
 
 try:
-    pet_data: Pet = pet.get_pet_by_id(client, petId=999)
+    pet_data: Pet = pet.get_pet_by_id(client, pet_id=999)
 except ApiError as e:
     if e.status_code == 404:
         print("Pet not found")
