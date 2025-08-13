@@ -1,0 +1,22 @@
+
+# Pydantic OpenAPI SDK Generator Configuration
+# Example configuration for Swagger Pet Store API
+
+spec: "https://petstore3.swagger.io/api/v3/openapi.json"
+output_dir: "examples/gen"
+package_name: "petstore_sdk"
+base_url: "https://petstore3.swagger.io/api/v3"
+verbose: true
+
+# Code generation options
+use_union_operator: true
+
+# Model generation options
+model_options:
+  field_constraints: true
+  use_standard_typing: false
+  use_generic_container_types: true
+
+# Client options
+timeout: 30
+user_agent: "pydantic-openapi-sdk/1.0.0"

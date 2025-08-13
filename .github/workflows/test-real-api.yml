@@ -1,0 +1,87 @@
+name: Real API Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 09:00 UTC to catch API changes
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  test-real-api:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+
+    - name: Set up Python
+      run: uv python install 3.11
+
+    - name: Run full CI test pipeline
+      run: make ci-test
+
+    - name: Check for SDK changes
+      id: check_changes
+      run: |
+        if git diff --quiet examples/gen/petstore_sdk/; then
+          echo "changes=false" >> $GITHUB_OUTPUT
+          echo "No changes in generated SDK"
+        else
+          echo "changes=true" >> $GITHUB_OUTPUT
+          echo "Changes detected in generated SDK:"
+          git diff --name-only examples/gen/petstore_sdk/
+        fi
+
+    - name: Commit updated SDK if changes (scheduled runs only)
+      if: github.event_name == 'schedule' && steps.check_changes.outputs.changes == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add examples/gen/petstore_sdk/
+        git add petstore3_openapi.json
+        git commit -m "🤖 Auto-update generated SDK from Swagger Pet Store API
+
+        - Updated from https://petstore3.swagger.io/api/v3/openapi.json
+        - Generated on $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+        - All tests passed against live API"
+        git push
+
+    - name: Upload SDK artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: generated-sdk
+        path: |
+          examples/gen/petstore_sdk/
+          petstore3_openapi.json
+        retention-days: 30
+
+    - name: Report test results
+      if: always()
+      run: |
+        echo "## 🧪 Real API Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ **All tests passed!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- SDK generated successfully from Swagger Pet Store API" >> $GITHUB_STEP_SUMMARY
+          echo "- All API calls working correctly" >> $GITHUB_STEP_SUMMARY
+          echo "- Code quality checks completed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Tests failed**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check the logs above for details." >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📊 **Generated SDK Stats:**" >> $GITHUB_STEP_SUMMARY
+        echo "- Python files: $(find examples/gen/petstore_sdk -name "*.py" | wc -l)" >> $GITHUB_STEP_SUMMARY
+        echo "- API modules: $(find examples/gen/petstore_sdk/api -name "*.py" ! -name "__init__.py" | wc -l)" >> $GITHUB_STEP_SUMMARY
