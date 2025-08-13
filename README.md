@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/img/logo.png" alt="Pydantic OpenAPI SDK Generator" width="400">
+  <img src="docs/img/logo.png" alt="Pydantic OpenAPI SDK Generator" width="350">
   
   # Pydantic OpenAPI SDK Generator
 </div>
