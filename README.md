@@ -15,6 +15,9 @@ Generate Python SDKs from OpenAPI 3.x specifications with Pydantic v2 models and
 - **OpenAPI 3.x Support** - Parse YAML/JSON specifications and URLs
 - **Synchronous HTTP Client** - Built on httpx for production use
 - **Pydantic v2 Models** - Generated using datamodel-code-generator for accuracy
+- **Advanced Type System** - Precise return types (Pet, list[Pet], Order) instead of Any
+- **Automatic Model Serialization** - Seamless Pydantic model → JSON conversion
+- **Customizable Client Class** - Configure client class name (e.g., "PetStore", "ApiClient")
 - **Multiple Authentication** - Bearer token, API key, and Basic auth
 - **YAML Configuration** - Manage generation settings in config files
 - **Code Organization** - Operations grouped by tags, clean structure
@@ -75,7 +78,7 @@ print(f"Found {len(available_pets)} available pets")
 inventory = store.get_inventory(client)
 print(f"Store inventory: {inventory}")
 
-# Create a new pet
+# Create and add a new pet (with type safety)
 new_pet = Pet(
     name="Buddy",
     category=Category(id=1, name="Dogs"),
@@ -83,6 +86,10 @@ new_pet = Pet(
     tags=[Tag(id=1, name="friendly")],
     status="available"
 )
+
+# Add pet - automatically serializes Pydantic model to JSON
+added_pet: Pet = pet.add_pet(client, body=new_pet)
+print(f"Added pet: {added_pet.name} (ID: {added_pet.id})")
 ```
 
 ## Configuration
@@ -145,6 +152,45 @@ petstore/
     └── __init__.py      # Pydantic models
 ```
 
+## Advanced Features
+
+### Type-Safe API Generation
+
+The generator creates precise type annotations by analyzing OpenAPI schemas:
+
+```python
+# Instead of generic Any types:
+def get_pet_by_id(client: Client, petId: int) -> Any:  # ❌ Old approach
+
+# You get specific model types:
+def get_pet_by_id(client: PetStore, petId: int) -> Pet:  # ✅ New approach
+def find_pets_by_status(client: PetStore, status: str) -> list[Pet]:  # ✅ Array support
+def get_inventory(client: PetStore) -> dict[str, int]:  # ✅ Object types
+```
+
+### Automatic Model Detection
+
+The generator analyzes generated Pydantic models to ensure type consistency:
+
+- **Schema Reference Resolution**: `#/components/schemas/Pet` → `Pet` class
+- **Name Conflict Handling**: `Status` vs `Status1` enum conflicts resolved automatically  
+- **Validation Fallbacks**: Unknown types safely default to `Any`
+
+### Smart Serialization
+
+Request bodies are automatically serialized based on type analysis:
+
+```python
+# For Pydantic models - automatic serialization
+def add_pet(client: PetStore, body: Pet) -> Pet:
+    response = client.request("post", path, params=params, 
+        json=body.model_dump(mode='json') if hasattr(body, 'model_dump') else body)
+
+# For raw data - pass through unchanged  
+def upload_data(client: PetStore, body: dict[str, Any]) -> Response:
+    response = client.request("post", path, params=params, json=body)
+```
+
 ## Usage Examples
 
 ### Basic Client Usage
@@ -186,6 +232,28 @@ client = PetStore(
 )
 ```
 
+### Type System Benefits
+
+```python
+from petstore.api import pet, store
+from petstore.models import Pet, Category, Tag
+
+# ✅ Precise return types instead of Any
+pets: list[Pet] = pet.find_pets_by_status(client, status="available")
+single_pet: Pet = pet.get_pet_by_id(client, petId=1)
+inventory: dict[str, int] = store.get_inventory(client)
+
+# ✅ Automatic Pydantic model serialization
+new_pet = Pet(name="Max", photoUrls=["photo.jpg"])
+result: Pet = pet.add_pet(client, body=new_pet)  # Automatically converts to JSON
+
+# ✅ IDE autocompletion and type checking
+for p in pets:
+    print(f"Pet: {p.name}")  # IDE knows p is Pet, not Any
+    if p.category:
+        print(f"Category: {p.category.name}")  # Full type safety
+```
+
 ### Working with Models
 
 ```python
@@ -201,27 +269,23 @@ try:
         tags=[Tag(id=1, name="friendly")],
         status="available"
     )
-    # Convert to dict for API call
-    api_payload = new_pet.model_dump()
+    # No manual serialization needed - handled automatically!
+    added_pet = pet.add_pet(client, body=new_pet)
 except ValidationError as e:
     print(f"Validation error: {e}")
-
-# Parse response data
-response_data = {"id": 1, "name": "John Doe", "email": "john@example.com"}
-user = User(**response_data)
 ```
 
 ### Error Handling
 
 ```python
-from my_api import ApiError
-from my_api.api import users
+from petstore import ApiError
+from petstore.api import pet
 
 try:
-    user = users.get_user(client, user_id=123)
+    pet_data: Pet = pet.get_pet_by_id(client, petId=999)
 except ApiError as e:
     if e.status_code == 404:
-        print("User not found")
+        print("Pet not found")
     elif e.status_code == 401:
         print("Authentication required")
     elif e.status_code >= 500:
@@ -232,10 +296,11 @@ except ApiError as e:
 ### Context Manager
 
 ```python
-from my_api import Client, BearerAuth
+from petstore import PetStore, BearerAuth
+from petstore.api import pet
 
-with Client(base_url="https://api.example.com", auth=BearerAuth("token")) as client:
-    data = users.get_users(client)
+with PetStore(base_url="https://petstore3.swagger.io/api/v3", auth=BearerAuth("token")) as client:
+    pets: list[Pet] = pet.find_pets_by_status(client, status="available")
     # Client automatically closes
 ```
 
