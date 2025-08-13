@@ -1,5 +1,9 @@
 # Pydantic OpenAPI SDK Generator
 
+> [!WARNING]
+> **⚠️ Under Development**  
+> This project is currently under development and experimental. APIs, interfaces, and generated code structure may change in future versions. Use with caution in production environments.
+
 Generate Python SDKs from OpenAPI 3.x specifications with Pydantic v2 models and synchronous HTTP clients.
 
 ## Features
@@ -95,15 +99,15 @@ user_agent: "MyApp/1.0.0"
 
 ### CLI Options
 
-| Option | Description | Example |
-|--------|-------------|---------|
-| `--config` | Configuration file path | `--config config.yaml` |
-| `--spec` | OpenAPI spec file/URL | `--spec openapi.json` |
-| `--out` | Output directory | `--out ./generated` |
-| `--package` | Package name | `--package my_sdk` |
-| `--base-url` | Default base URL | `--base-url https://api.com` |
-| `--timeout` | HTTP timeout (seconds) | `--timeout 60` |
-| `--verbose` | Verbose output | `--verbose` |
+| Option       | Description             | Example                      |
+| ------------ | ----------------------- | ---------------------------- |
+| `--config`   | Configuration file path | `--config config.yaml`       |
+| `--spec`     | OpenAPI spec file/URL   | `--spec openapi.json`        |
+| `--out`      | Output directory        | `--out ./generated`          |
+| `--package`  | Package name            | `--package my_sdk`           |
+| `--base-url` | Default base URL        | `--base-url https://api.com` |
+| `--timeout`  | HTTP timeout (seconds)  | `--timeout 60`               |
+| `--verbose`  | Verbose output          | `--verbose`                  |
 
 CLI options override configuration file settings.
 
