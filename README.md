@@ -34,39 +34,51 @@ uv add pydantic-openapi-sdk
 
 ### 1. Generate SDK
 
-From command line:
+From Swagger Pet Store API:
 
 ```bash
-pydantic-openapi-sdk generate --spec openapi.yaml --out ./sdk --package my_api
-```
-
-From URL:
-
-```bash
-pydantic-openapi-sdk generate --spec https://api.example.com/openapi.json --out ./sdk --package my_api
+pydantic-openapi-sdk generate \
+  --spec https://petstore3.swagger.io/api/v3/openapi.json \
+  --out ./examples/gen \
+  --package petstore \
+  --client-name PetStore
 ```
 
 With configuration file:
 
 ```bash
-pydantic-openapi-sdk generate --config config.yaml
+pydantic-openapi-sdk generate --config configs/petstore.yaml
 ```
 
 ### 2. Use Generated SDK
 
 ```python
-from my_api import Client, BearerAuth
-from my_api.api import users
-from my_api.models import User
+from petstore import PetStore, BearerAuth
+from petstore.api import pet, store
+from petstore.models import Pet, Category, Tag
 
-client = Client(
-    base_url="https://api.example.com",
+# Create client
+client = PetStore(
+    base_url="https://petstore3.swagger.io/api/v3",
     auth=BearerAuth("your-token")
 )
 
-# Make API calls
-user_list = users.get_users(client, limit=10)
-new_user = users.create_user(client, body={"name": "John", "email": "john@example.com"})
+# Find available pets
+available_pets = pet.find_pets_by_status(client, status="available")
+print(f"Found {len(available_pets)} available pets")
+
+# Get store inventory
+inventory = store.get_inventory(client)
+print(f"Store inventory: {inventory}")
+
+# Create a new pet
+new_pet = Pet(
+    name="Buddy",
+    category=Category(id=1, name="Dogs"),
+    photoUrls=["https://example.com/photo.jpg"],
+    tags=[Tag(id=1, name="friendly")],
+    status="available"
+)
 ```
 
 ## Configuration
@@ -76,11 +88,11 @@ new_user = users.create_user(client, body={"name": "John", "email": "john@exampl
 Create a configuration file to manage settings:
 
 ```yaml
-# config.yaml
-spec: "https://api.example.com/openapi.json"
-output_dir: "./sdk"
-package_name: "my_api"
-base_url: "https://api.example.com"
+# petstore.yaml
+spec: "https://petstore3.swagger.io/api/v3/openapi.json"
+output_dir: "examples/gen"
+package_name: "petstore"
+base_url: "https://petstore3.swagger.io/api/v3"
 verbose: true
 
 # Code generation options
@@ -94,8 +106,8 @@ model_options:
 
 # Client options
 timeout: 30
-user_agent: "MyApp/1.0.0"
-client_class_name: "ApiClient"  # Custom client class name (default: "Client")
+user_agent: "pydantic-openapi-sdk/1.0.0"
+client_class_name: "PetStore"  # Custom client class name (default: "Client")
 ```
 
 ### CLI Options
@@ -116,14 +128,15 @@ CLI options override configuration file settings.
 ## Generated SDK Structure
 
 ```text
-my_api/
+petstore/
 ├── __init__.py          # Package exports
 ├── client.py            # HTTP client and authentication
 ├── exceptions.py        # Error classes
 ├── api/
 │   ├── __init__.py
-│   ├── users.py         # User operations
-│   └── orders.py        # Order operations
+│   ├── pet.py           # Pet operations
+│   ├── store.py         # Store operations
+│   └── user.py          # User operations
 └── models/
     └── __init__.py      # Pydantic models
 ```
@@ -133,14 +146,14 @@ my_api/
 ### Basic Client Usage
 
 ```python
-from my_api import Client, ApiError
-from my_api.api import users
+from petstore import PetStore, ApiError
+from petstore.api import pet
 
-client = Client(base_url="https://api.example.com")
+client = PetStore(base_url="https://petstore3.swagger.io/api/v3")
 
 try:
-    users_data = users.get_users(client)
-    print(f"Found {len(users_data)} users")
+    available_pets = pet.find_pets_by_status(client, status="available")
+    print(f"Found {len(available_pets)} available pets")
 except ApiError as e:
     print(f"API error: {e.status_code} - {e.message}")
 ```
@@ -148,23 +161,23 @@ except ApiError as e:
 ### Authentication
 
 ```python
-from my_api import Client, BearerAuth, ApiKeyAuth, BasicAuth
+from petstore import PetStore, BearerAuth, ApiKeyAuth, BasicAuth
 
 # Bearer token
-client = Client(
-    base_url="https://api.example.com",
+client = PetStore(
+    base_url="https://petstore3.swagger.io/api/v3",
     auth=BearerAuth("your-jwt-token")
 )
 
 # API key
-client = Client(
-    base_url="https://api.example.com",
+client = PetStore(
+    base_url="https://petstore3.swagger.io/api/v3",
     auth=ApiKeyAuth("your-api-key", "X-API-Key")
 )
 
 # Basic auth
-client = Client(
-    base_url="https://api.example.com",
+client = PetStore(
+    base_url="https://petstore3.swagger.io/api/v3",
     auth=BasicAuth("username", "password")
 )
 ```
@@ -172,18 +185,20 @@ client = Client(
 ### Working with Models
 
 ```python
-from my_api.models import User, CreateUser
+from petstore.models import Pet, Category, Tag
 from pydantic import ValidationError
 
 # Create model with validation
 try:
-    user_data = CreateUser(
-        name="John Doe",
-        email="john@example.com",
-        age=30
+    new_pet = Pet(
+        name="Buddy",
+        category=Category(id=1, name="Dogs"),
+        photoUrls=["https://example.com/photo.jpg"],
+        tags=[Tag(id=1, name="friendly")],
+        status="available"
     )
     # Convert to dict for API call
-    api_payload = user_data.model_dump()
+    api_payload = new_pet.model_dump()
 except ValidationError as e:
     print(f"Validation error: {e}")
 
