@@ -6,22 +6,22 @@ from ..exceptions import ApiError
 from ..models import *
 
 
-def create_user(client: PetStore, body: User) -> User:
+def create_user(client: PetStore, body: User | Dict[str, Any]) -> User:
     """Create user..
     
     This can only be done by the logged in user."""
     path = f"/user"
     params = None
-    response = client.request("post", path, params=params, json=body)
+    response = client.request("post", path, params=params, json=body.model_dump(mode='json') if hasattr(body, 'model_dump') else body)
     return response.json()
 
-def create_users_with_list_input(client: PetStore, body: list[User]) -> User:
+def create_users_with_list_input(client: PetStore, body: list[User] | Dict[str, Any]) -> User:
     """Creates list of users with given input array..
     
     Creates list of users with given input array."""
     path = f"/user/createWithList"
     params = None
-    response = client.request("post", path, params=params, json=body)
+    response = client.request("post", path, params=params, json=body.model_dump(mode='json') if hasattr(body, 'model_dump') else body)
     return response.json()
 
 def login_user(client: PetStore, username: Optional[str] = None, password: Optional[str] = None) -> str:
@@ -59,13 +59,13 @@ def get_user_by_name(client: PetStore, username: str) -> User:
     response = client.request("get", path, params=params)
     return response.json()
 
-def update_user(client: PetStore, username: str, body: User) -> TypedResponse:
+def update_user(client: PetStore, username: str, body: User | Dict[str, Any]) -> TypedResponse:
     """Update user resource..
     
     This can only be done by the logged in user."""
     path = f"/user/{username}"
     params = None
-    response = client.request("put", path, params=params, json=body)
+    response = client.request("put", path, params=params, json=body.model_dump(mode='json') if hasattr(body, 'model_dump') else body)
     return TypedResponse(
         status_code=response.status_code,
         headers=dict(response.headers),

@@ -146,18 +146,26 @@ class CodeGenerator:
 
         # Path parameters
         path_params = [p for p in operation["parameters"] if p["in"] == "path"]
+        param_mapping = {}  # Store original -> snake_case mapping
+        
         for param in path_params:
             param_type = self._get_python_type(param["schema"])
-            params.append(f"{param['name']}: {param_type}")
+            snake_name, original_name = self._convert_param_name(param["name"])
+            param_mapping[snake_name] = original_name
+            params.append(f"{snake_name}: {param_type}")
+            print(f"DEBUG: Path param {operation.get('operation_id', 'unknown')}: {original_name} -> {snake_name}")
 
         # Query parameters
         query_params = [p for p in operation["parameters"] if p["in"] == "query"]
         for param in query_params:
             param_type = self._get_python_type(param["schema"])
+            snake_name, original_name = self._convert_param_name(param["name"])
+            param_mapping[snake_name] = original_name
+            
             if param["required"]:
-                params.append(f"{param['name']}: {param_type}")
+                params.append(f"{snake_name}: {param_type}")
             else:
-                params.append(f"{param['name']}: Optional[{param_type}] = None")
+                params.append(f"{snake_name}: Optional[{param_type}] = None")
 
         # Request body
         if operation["request_body"]:
@@ -185,6 +193,11 @@ class CodeGenerator:
 
         # Build path with path parameters
         final_path = path
+        
+        # Replace path parameters with snake_case variable names
+        for param in path_params:
+            snake_name, original_name = self._convert_param_name(param["name"])
+            final_path = final_path.replace(f"{{{original_name}}}", f"{{{snake_name}}}")
 
         body.append(f'    path = f"{final_path}"')
 
@@ -192,11 +205,12 @@ class CodeGenerator:
         if query_params:
             body.append("    params = {}")
             for param in query_params:
+                snake_name, original_name = self._convert_param_name(param["name"])
                 if param["required"]:
-                    body.append(f'    params["{param["name"]}"] = {param["name"]}')
+                    body.append(f'    params["{original_name}"] = {snake_name}')
                 else:
-                    body.append(f"    if {param['name']} is not None:")
-                    body.append(f'        params["{param["name"]}"] = {param["name"]}')
+                    body.append(f"    if {snake_name} is not None:")
+                    body.append(f'        params["{original_name}"] = {snake_name}')
         else:
             body.append("    params = None")
 
@@ -218,7 +232,14 @@ class CodeGenerator:
             # For typed responses, return JSON directly
             body.append("    return response.json()")
 
-        return signature + "\n" + docstring + "\n".join(body)
+        result = signature + "\n" + docstring + "\n".join(body)
+        operation_id = operation.get('operation_id', 'unknown')
+        print(f"DEBUG: Generated function {operation_id}")
+        print(f"DEBUG: Signature: {signature}")
+        if "petId" in result or "orderId" in result:
+            print(f"DEBUG: WARNING - Found camelCase in {operation_id}:")
+            print(f"DEBUG: Full result:\n{result}")
+        return result
 
     def _get_function_name(self, operation: dict[str, Any]) -> str:
         """Generate function name from operation."""
@@ -365,3 +386,12 @@ class CodeGenerator:
         name = re.sub("_+", "_", name.lower())
         # Remove leading/trailing underscores
         return name.strip("_")
+    
+    def _convert_param_name(self, param_name: str) -> tuple[str, str]:
+        """Convert parameter name to snake_case and return both versions.
+        
+        Returns:
+            tuple: (snake_case_name, original_name)
+        """
+        snake_name = self._to_snake_case(param_name)
+        return snake_name, param_name

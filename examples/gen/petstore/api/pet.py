@@ -6,7 +6,7 @@ from ..exceptions import ApiError
 from ..models import *
 
 
-def update_pet(client: PetStore, body: Pet) -> Pet:
+def update_pet(client: PetStore, body: Pet | Dict[str, Any]) -> Pet:
     """Update an existing pet..
     
     Update an existing pet by Id."""
@@ -15,13 +15,13 @@ def update_pet(client: PetStore, body: Pet) -> Pet:
     response = client.request("put", path, params=params, json=body.model_dump(mode='json') if hasattr(body, 'model_dump') else body)
     return response.json()
 
-def add_pet(client: PetStore, body: Pet) -> Pet:
+def add_pet(client: PetStore, body: Pet | Dict[str, Any]) -> Pet:
     """Add a new pet to the store..
     
     Add a new pet to the store."""
     path = f"/pet"
     params = None
-    response = client.request("post", path, params=params, json=body)
+    response = client.request("post", path, params=params, json=body.model_dump(mode='json') if hasattr(body, 'model_dump') else body)
     return response.json()
 
 def find_pets_by_status(client: PetStore, status: str) -> list[Pet]:
@@ -44,20 +44,20 @@ def find_pets_by_tags(client: PetStore, tags: List[str]) -> list[Pet]:
     response = client.request("get", path, params=params)
     return response.json()
 
-def get_pet_by_id(client: PetStore, petId: int) -> Pet:
+def get_pet_by_id(client: PetStore, pet_id: int) -> Pet:
     """Find pet by ID..
     
     Returns a single pet."""
-    path = f"/pet/{petId}"
+    path = f"/pet/{pet_id}"
     params = None
     response = client.request("get", path, params=params)
     return response.json()
 
-def update_pet_with_form(client: PetStore, petId: int, name: Optional[str] = None, status: Optional[str] = None) -> Pet:
+def update_pet_with_form(client: PetStore, pet_id: int, name: Optional[str] = None, status: Optional[str] = None) -> Pet:
     """Updates a pet in the store with form data..
     
     Updates a pet resource based on the form data."""
-    path = f"/pet/{petId}"
+    path = f"/pet/{pet_id}"
     params = {}
     if name is not None:
         params["name"] = name
@@ -66,11 +66,11 @@ def update_pet_with_form(client: PetStore, petId: int, name: Optional[str] = Non
     response = client.request("post", path, params=params)
     return response.json()
 
-def delete_pet(client: PetStore, petId: int) -> TypedResponse:
+def delete_pet(client: PetStore, pet_id: int) -> TypedResponse:
     """Deletes a pet..
     
     Delete a pet."""
-    path = f"/pet/{petId}"
+    path = f"/pet/{pet_id}"
     params = None
     response = client.request("delete", path, params=params)
     return TypedResponse(
@@ -79,14 +79,14 @@ def delete_pet(client: PetStore, petId: int) -> TypedResponse:
         data=response.json() if response.text else None,
     )
 
-def upload_file(client: PetStore, petId: int, additionalMetadata: Optional[str] = None) -> ApiResponse:
+def upload_file(client: PetStore, pet_id: int, additional_metadata: Optional[str] = None) -> ApiResponse:
     """Uploads an image..
     
     Upload image of the pet."""
-    path = f"/pet/{petId}/uploadImage"
+    path = f"/pet/{pet_id}/uploadImage"
     params = {}
-    if additionalMetadata is not None:
-        params["additionalMetadata"] = additionalMetadata
+    if additional_metadata is not None:
+        params["additionalMetadata"] = additional_metadata
     response = client.request("post", path, params=params)
     return response.json()
 
