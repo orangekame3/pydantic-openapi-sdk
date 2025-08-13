@@ -1,4 +1,8 @@
-# Pydantic OpenAPI SDK Generator
+<div align="center">
+  <img src="docs/img/logo.png" alt="Pydantic OpenAPI SDK Generator" width="200">
+  
+  # Pydantic OpenAPI SDK Generator
+</div>
 
 > [!WARNING]
 > **⚠️ Under Development**  
