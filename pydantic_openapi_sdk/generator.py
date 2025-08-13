@@ -8,6 +8,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from .model_generator import ModelGenerator
 from .parser import OpenAPIParser
+import ast
 
 
 class CodeGenerator:
@@ -21,6 +22,7 @@ class CodeGenerator:
             trim_blocks=True,
             lstrip_blocks=True,
         )
+        self.generated_model_names: set[str] = set()
 
     def generate_sdk(self, output_dir: Path, package_name: str) -> None:
         """Generate complete SDK."""
@@ -36,7 +38,8 @@ class CodeGenerator:
         self._generate_exceptions_file(package_dir)
         self._generate_client_file(package_dir)
 
-        # Generate API modules
+        # Generate API modules  
+        self._analyze_generated_models(package_dir)
         self._generate_api_modules(package_dir)
 
     def _generate_init_file(self, package_dir: Path, package_name: str) -> None:
@@ -158,16 +161,15 @@ class CodeGenerator:
 
         # Request body
         if operation["request_body"]:
-            params.append("body: Any")  # Could be more specific with model type
+            body_type = self._get_request_body_type(operation["request_body"])
+            # Support both Pydantic models and raw dicts for flexibility
+            if body_type != "Any" and body_type != "Dict[str, Any]":
+                params.append(f"body: {body_type} | Dict[str, Any]")
+            else:
+                params.append(f"body: {body_type}")
 
         # Return type
-        success_response = operation["responses"].get("200") or operation[
-            "responses"
-        ].get("201")
-        if success_response and success_response["schema"]:
-            return_type = "Any"  # Could be more specific with model type
-        else:
-            return_type = "TypedResponse"
+        return_type = self._get_response_type(operation["responses"])
 
         # Function signature
         signature = f"def {func_name}({', '.join(params)}) -> {return_type}:"
@@ -201,19 +203,20 @@ class CodeGenerator:
         # Build request call
         request_args = [f'"{method}"', "path", "params=params"]
         if operation["request_body"]:
-            request_args.append("json=body")
+            request_args.append("json=body.model_dump(mode='json') if hasattr(body, 'model_dump') else body")
 
         body.append(f"    response = client.request({', '.join(request_args)})")
 
-        # Handle response
-        if success_response and success_response["schema"]:
-            body.append("    return response.json()")  # Could parse to model
-        else:
+        # Handle response based on return type
+        if return_type == "TypedResponse":
             body.append("    return TypedResponse(")
             body.append("        status_code=response.status_code,")
             body.append("        headers=dict(response.headers),")
             body.append("        data=response.json() if response.text else None,")
             body.append("    )")
+        else:
+            # For typed responses, return JSON directly
+            body.append("    return response.json()")
 
         return signature + "\n" + docstring + "\n".join(body)
 
@@ -251,6 +254,105 @@ class CodeGenerator:
             return "Dict[str, Any]"
         else:
             return "Any"
+
+    def _analyze_generated_models(self, package_dir: Path) -> None:
+        """Analyze generated models to extract actual class and enum names."""
+        models_init_path = package_dir / "models" / "__init__.py"
+        if not models_init_path.exists():
+            return
+        
+        try:
+            with open(models_init_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            
+            # Parse the AST to extract class and enum definitions
+            tree = ast.parse(content)
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
+                    if isinstance(node, ast.ClassDef):
+                        self.generated_model_names.add(node.name)
+        except Exception:
+            # If parsing fails, we'll fall back to basic schema names
+            pass
+    
+    def _resolve_model_type(self, schema: dict) -> str:
+        """Resolve OpenAPI schema to Python model type."""
+        if not schema:
+            return "Any"
+        
+        # Handle $ref references
+        if "$ref" in schema:
+            ref_path = schema["$ref"]
+            if ref_path.startswith("#/components/schemas/"):
+                schema_name = ref_path.split("/")[-1]
+                
+                # Check if the schema name exists in generated models
+                if schema_name in self.generated_model_names:
+                    return schema_name
+                
+                # Check for common datamodel-codegen naming variations
+                variations = [
+                    schema_name,
+                    f"{schema_name}1",  # Common suffix for conflicts
+                    f"{schema_name}Model",  # Sometimes adds Model suffix
+                ]
+                
+                for variation in variations:
+                    if variation in self.generated_model_names:
+                        return variation
+                
+                # If no match found, fall back to original name and hope for the best
+                return schema_name
+        
+        # Handle array types
+        if schema.get("type") == "array":
+            items_schema = schema.get("items", {})
+            item_type = self._resolve_model_type(items_schema)
+            return f"list[{item_type}]"
+        
+        # Handle object types - could be inline schemas
+        if schema.get("type") == "object":
+            return "Dict[str, Any]"
+        
+        # Handle basic types
+        schema_type = schema.get("type")
+        if schema_type == "string":
+            return "str"
+        elif schema_type == "integer":
+            return "int"
+        elif schema_type == "number":
+            return "float"
+        elif schema_type == "boolean":
+            return "bool"
+        
+        return "Any"
+
+    def _get_response_type(self, responses: dict) -> str:
+        """Get the appropriate return type from OpenAPI responses."""
+        # Try common success status codes
+        for status_code in ["200", "201", "202"]:
+            if status_code in responses:
+                response = responses[status_code]
+                schema = response.get("schema", {})
+                
+                if schema:
+                    return self._resolve_model_type(schema)
+                
+                # If no schema but response exists, use TypedResponse
+                return "TypedResponse"
+        
+        # If no success response found, default to TypedResponse
+        return "TypedResponse"
+    
+    def _get_request_body_type(self, request_body: dict) -> str:
+        """Get the appropriate type for request body from OpenAPI request body spec."""
+        schema = request_body.get("schema", {})
+        
+        if schema:
+            return self._resolve_model_type(schema)
+        
+        # Default to Any for unknown schema
+        return "Any"
 
     def _to_snake_case(self, name: str) -> str:
         """Convert string to snake_case."""

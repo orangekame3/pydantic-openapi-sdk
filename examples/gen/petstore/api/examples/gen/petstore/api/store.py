@@ -15,13 +15,13 @@ def get_inventory(client: PetStore) -> Dict[str, Any]:
     response = client.request("get", path, params=params)
     return response.json()
 
-def place_order(client: PetStore, body: Order) -> Order:
+def place_order(client: PetStore, body: Order | Dict[str, Any]) -> Order:
     """Place an order for a pet..
     
     Place a new order in the store."""
     path = f"/store/order"
     params = None
-    response = client.request("post", path, params=params, json=body)
+    response = client.request("post", path, params=params, json=body.model_dump(mode='json') if hasattr(body, 'model_dump') else body)
     return response.json()
 
 def get_order_by_id(client: PetStore, orderId: int) -> Order:

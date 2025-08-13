@@ -6,7 +6,7 @@ from ..exceptions import ApiError
 from ..models import *
 
 
-def update_pet(client: PetStore, body: Pet) -> Pet:
+def update_pet(client: PetStore, body: Pet | Dict[str, Any]) -> Pet:
     """Update an existing pet..
     
     Update an existing pet by Id."""
@@ -15,13 +15,13 @@ def update_pet(client: PetStore, body: Pet) -> Pet:
     response = client.request("put", path, params=params, json=body.model_dump(mode='json') if hasattr(body, 'model_dump') else body)
     return response.json()
 
-def add_pet(client: PetStore, body: Pet) -> Pet:
+def add_pet(client: PetStore, body: Pet | Dict[str, Any]) -> Pet:
     """Add a new pet to the store..
     
     Add a new pet to the store."""
     path = f"/pet"
     params = None
-    response = client.request("post", path, params=params, json=body)
+    response = client.request("post", path, params=params, json=body.model_dump(mode='json') if hasattr(body, 'model_dump') else body)
     return response.json()
 
 def find_pets_by_status(client: PetStore, status: str) -> list[Pet]:
