@@ -8,7 +8,7 @@ Before running these examples, generate the Pet Store SDK:
 
 ```bash
 cd ..
-uv run pydantic-openapi-sdk generate --spec example_api.yaml --out output --package petstore_sdk
+uv run pydantic-openapi-sdk generate --spec example_api.yaml --out output --package petstore
 ```
 
 ## Examples

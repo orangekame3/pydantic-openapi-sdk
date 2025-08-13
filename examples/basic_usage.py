@@ -7,14 +7,14 @@ from pathlib import Path
 # Add the generated SDK to the path
 sys.path.insert(0, str(Path(__file__).parent.parent / "output"))
 
-from petstore_sdk import BearerAuth, Client
-from petstore_sdk.api import pets
-from petstore_sdk.models import NewPet, Status
+from petstore import BearerAuth, PetStore
+from petstore.api import pets
+from petstore.models import NewPet, Status
 
 
 def main():
     # Create client
-    client = Client(
+    client = PetStore(
         base_url="https://petstore.example.com/api/v1",
         auth=BearerAuth("your-token-here"),
     )

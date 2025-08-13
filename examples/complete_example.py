@@ -16,9 +16,9 @@ from pathlib import Path
 # Add the generated SDK to the path for this example
 sys.path.insert(0, str(Path(__file__).parent.parent / "output"))
 
-from petstore_sdk import ApiError, BearerAuth, Client
-from petstore_sdk.api import pets
-from petstore_sdk.models import NewPet, Status
+from petstore import ApiError, BearerAuth, PetStore
+from petstore.api import pets
+from petstore.models import NewPet, Status
 from pydantic import ValidationError
 
 
@@ -28,7 +28,7 @@ def create_client():
     base_url = os.getenv("PETSTORE_BASE_URL", "https://petstore.example.com/api/v1")
     token = os.getenv("PETSTORE_TOKEN", "demo-token")
 
-    return Client(base_url=base_url, auth=BearerAuth(token), timeout=30.0)
+    return PetStore(base_url=base_url, auth=BearerAuth(token), timeout=30.0)
 
 
 def demonstrate_model_validation():
@@ -127,7 +127,7 @@ def demonstrate_context_manager():
         token = os.getenv("PETSTORE_TOKEN", "demo-token")
 
         # Using context manager ensures client is properly closed
-        with Client(base_url=base_url, auth=BearerAuth(token)) as client:
+        with PetStore(base_url=base_url, auth=BearerAuth(token)) as client:
             print("✅ Client created with context manager")
 
             # Make a simple API call

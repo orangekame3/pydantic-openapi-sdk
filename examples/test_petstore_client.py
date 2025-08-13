@@ -7,15 +7,15 @@ from pathlib import Path
 # Add the generated SDK to the path
 sys.path.insert(0, str(Path(__file__).parent / "gen"))
 
-from petstore_sdk import ApiError, Client
-from petstore_sdk.api import pet, store, user
-from petstore_sdk.models import Category, Pet, Tag
+from petstore import ApiError, PetStore
+from petstore.api import pet, store, user
+from petstore.models import Category, Pet, Tag
 
 
 def test_real_api():
     """Test with the real Swagger Pet Store API."""
     # The real API base URL
-    client = Client(base_url="https://petstore3.swagger.io/api/v3")
+    client = PetStore(base_url="https://petstore3.swagger.io/api/v3")
 
     try:
         print("🐕 Testing Real Swagger Pet Store API")
