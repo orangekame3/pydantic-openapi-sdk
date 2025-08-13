@@ -1,9 +1,7 @@
 """HTTP client with authentication support."""
 
-from typing import Any
-
+from typing import Any, Dict, Optional, Union
 import httpx
-
 from .exceptions import ApiError
 
 
@@ -47,10 +45,7 @@ class BasicAuth(AuthPolicy):
 
     def apply(self, request: httpx.Request) -> httpx.Request:
         import base64
-
-        credentials = base64.b64encode(
-            f"{self.username}:{self.password}".encode()
-        ).decode()
+        credentials = base64.b64encode(f"{self.username}:{self.password}".encode()).decode()
         request.headers["Authorization"] = f"Basic {credentials}"
         return request
 
@@ -61,16 +56,15 @@ class Client:
     def __init__(
         self,
         base_url: str,
-        auth: AuthPolicy | None = None,
-        timeout: float | None = 30,
+        auth: Optional[AuthPolicy] = None,
+        timeout: Optional[float] = 30,
     ):
-        self.base_url = base_url.rstrip("/")
+        self.base_url = base_url.rstrip('/')
         self.auth = auth
 
         # Set up default headers
         headers = {}
         headers["User-Agent"] = "pydantic-openapi-sdk/1.0.0"
-
         self._client = httpx.Client(timeout=timeout, headers=headers)
 
     def __enter__(self):
@@ -88,9 +82,9 @@ class Client:
         method: str,
         path: str,
         *,
-        params: dict[str, Any] | None = None,
-        headers: dict[str, str] | None = None,
-        json: Any | None = None,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        json: Optional[Any] = None,
     ) -> httpx.Response:
         """Make HTTP request."""
         url = f"{self.base_url}{path}"
@@ -126,7 +120,7 @@ class Client:
 class TypedResponse:
     """Typed response wrapper."""
 
-    def __init__(self, status_code: int, headers: dict[str, str], data: Any):
+    def __init__(self, status_code: int, headers: Dict[str, str], data: Any):
         self.status_code = status_code
         self.headers = headers
         self.data = data

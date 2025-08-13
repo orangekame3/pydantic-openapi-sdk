@@ -2,14 +2,16 @@
 
 __version__ = "1.0.27"
 
-from .api import pet, store, user
-from .client import ApiKeyAuth, BasicAuth, BearerAuth, Client, TypedResponse
+from .client import Client, BearerAuth, ApiKeyAuth, BasicAuth, TypedResponse
 from .exceptions import ApiError
+from .api import pet
+from .api import store
+from .api import user
 
 __all__ = [
     "Client",
     "BearerAuth",
-    "ApiKeyAuth",
+    "ApiKeyAuth", 
     "BasicAuth",
     "TypedResponse",
     "ApiError",

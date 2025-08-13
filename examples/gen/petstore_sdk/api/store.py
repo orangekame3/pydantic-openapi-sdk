@@ -1,44 +1,41 @@
 """API operations for store."""
 
-from typing import Any
-
+from typing import Any, Dict, List, Optional, Union
 from ..client import Client, TypedResponse
+from ..exceptions import ApiError
 from ..models import *
 
 
 def get_inventory(client: Client) -> Any:
     """Returns pet inventories by status..
-
+    
     Returns a map of status codes to quantities."""
-    path = "/store/inventory"
+    path = f"/store/inventory"
     params = None
     response = client.request("get", path, params=params)
     return response.json()
 
-
 def place_order(client: Client, body: Any) -> Any:
     """Place an order for a pet..
-
+    
     Place a new order in the store."""
-    path = "/store/order"
+    path = f"/store/order"
     params = None
     response = client.request("post", path, params=params, json=body)
     return response.json()
 
-
 def get_order_by_id(client: Client, orderId: int) -> Any:
     """Find purchase order by ID..
-
+    
     For valid response try integer IDs with value <= 5 or > 10. Other values will generate exceptions."""
     path = f"/store/order/{orderId}"
     params = None
     response = client.request("get", path, params=params)
     return response.json()
 
-
 def delete_order(client: Client, orderId: int) -> TypedResponse:
     """Delete purchase order by identifier..
-
+    
     For valid response try integer IDs with value < 1000. Anything above 1000 or non-integers will generate API errors."""
     path = f"/store/order/{orderId}"
     params = None
@@ -48,3 +45,4 @@ def delete_order(client: Client, orderId: int) -> TypedResponse:
         headers=dict(response.headers),
         data=response.json() if response.text else None,
     )
+
