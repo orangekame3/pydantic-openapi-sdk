@@ -50,22 +50,21 @@ class BasicAuth(AuthPolicy):
         return request
 
 
-class {{ client_class_name }}:
+class PetStore:
     """Synchronous HTTP client."""
 
     def __init__(
         self,
         base_url: str,
         auth: Optional[AuthPolicy] = None,
-        timeout: Optional[float] = {{ default_timeout }},
+        timeout: Optional[float] = 30,
     ):
         self.base_url = base_url.rstrip('/')
         self.auth = auth
 
         # Set up default headers
         headers = {}
-{% if user_agent %}        headers["User-Agent"] = "{{ user_agent }}"
-{% endif %}
+        headers["User-Agent"] = "pydantic-openapi-sdk/1.0.0"
         self._client = httpx.Client(timeout=timeout, headers=headers)
 
     def __enter__(self):

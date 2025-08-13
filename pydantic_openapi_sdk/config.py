@@ -36,6 +36,7 @@ class GenerationConfig(BaseModel):
     # Client options
     timeout: int = Field(30, description="Default HTTP timeout in seconds")
     user_agent: str | None = Field(None, description="Custom User-Agent header")
+    client_class_name: str = Field("Client", description="Name for the generated client class")
 
 
 def load_config(config_path: Path) -> GenerationConfig:

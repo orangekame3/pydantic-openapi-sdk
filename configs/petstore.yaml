@@ -4,7 +4,7 @@
 
 spec: "https://petstore3.swagger.io/api/v3/openapi.json"
 output_dir: "examples/gen"
-package_name: "petstore_sdk"
+package_name: "petstore"
 base_url: "https://petstore3.swagger.io/api/v3"
 verbose: true
 
@@ -20,3 +20,4 @@ model_options:
 # Client options
 timeout: 30
 user_agent: "pydantic-openapi-sdk/1.0.0"
+client_class_name: "PetStore"  # Custom name for the generated client class

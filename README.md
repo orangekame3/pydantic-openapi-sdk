@@ -95,19 +95,21 @@ model_options:
 # Client options
 timeout: 30
 user_agent: "MyApp/1.0.0"
+client_class_name: "ApiClient"  # Custom client class name (default: "Client")
 ```
 
 ### CLI Options
 
-| Option       | Description             | Example                      |
-| ------------ | ----------------------- | ---------------------------- |
-| `--config`   | Configuration file path | `--config config.yaml`       |
-| `--spec`     | OpenAPI spec file/URL   | `--spec openapi.json`        |
-| `--out`      | Output directory        | `--out ./generated`          |
-| `--package`  | Package name            | `--package my_sdk`           |
-| `--base-url` | Default base URL        | `--base-url https://api.com` |
-| `--timeout`  | HTTP timeout (seconds)  | `--timeout 60`               |
-| `--verbose`  | Verbose output          | `--verbose`                  |
+| Option          | Description             | Example                      |
+| --------------- | ----------------------- | ---------------------------- |
+| `--config`      | Configuration file path | `--config config.yaml`       |
+| `--spec`        | OpenAPI spec file/URL   | `--spec openapi.json`        |
+| `--out`         | Output directory        | `--out ./generated`          |
+| `--package`     | Package name            | `--package my_sdk`           |
+| `--base-url`    | Default base URL        | `--base-url https://api.com` |
+| `--timeout`     | HTTP timeout (seconds)  | `--timeout 60`               |
+| `--client-name` | Client class name       | `--client-name ApiClient`    |
+| `--verbose`     | Verbose output          | `--verbose`                  |
 
 CLI options override configuration file settings.
 

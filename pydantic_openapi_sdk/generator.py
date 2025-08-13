@@ -43,10 +43,11 @@ class CodeGenerator:
         """Generate __init__.py for the package."""
         info = self.parser.get_info()
         tags = sorted(self.parser.get_tags())
+        client_class_name = self.config.get("client_class_name", "Client")
 
         content = f'"""Generated SDK for {info.get("title", "API")}."""\n\n'
         content += f'__version__ = "{info.get("version", "0.1.0")}"\n\n'
-        content += "from .client import Client, BearerAuth, ApiKeyAuth, BasicAuth, TypedResponse\n"
+        content += f"from .client import {client_class_name}, BearerAuth, ApiKeyAuth, BasicAuth, TypedResponse\n"
         content += "from .exceptions import ApiError\n"
 
         # Import API modules
@@ -55,7 +56,7 @@ class CodeGenerator:
             content += f"from .api import {module_name}\n"
 
         content += "\n__all__ = [\n"
-        content += '    "Client",\n'
+        content += f'    "{client_class_name}",\n'
         content += '    "BearerAuth",\n'
         content += '    "ApiKeyAuth", \n'
         content += '    "BasicAuth",\n'
@@ -82,6 +83,7 @@ class CodeGenerator:
         content = template.render(
             default_timeout=self.config.get("timeout", 30),
             user_agent=self.config.get("user_agent"),
+            client_class_name=self.config.get("client_class_name", "Client"),
         )
         (package_dir / "client.py").write_text(content)
 
@@ -114,10 +116,11 @@ class CodeGenerator:
         """Generate API module for a specific tag."""
         module_name = self._to_snake_case(tag)
         module_file = api_dir / f"{module_name}.py"
+        client_class_name = self.config.get("client_class_name", "Client")
 
         content = f'"""API operations for {tag}."""\n\n'
         content += "from typing import Any, Dict, List, Optional, Union\n"
-        content += "from ..client import Client, TypedResponse\n"
+        content += f"from ..client import {client_class_name}, TypedResponse\n"
         content += "from ..exceptions import ApiError\n"
         content += "from ..models import *\n\n\n"
 
@@ -135,7 +138,8 @@ class CodeGenerator:
 
         # Build function signature
         params = []
-        params.append("client: Client")
+        client_class_name = self.config.get("client_class_name", "Client")
+        params.append(f"client: {client_class_name}")
 
         # Path parameters
         path_params = [p for p in operation["parameters"] if p["in"] == "path"]

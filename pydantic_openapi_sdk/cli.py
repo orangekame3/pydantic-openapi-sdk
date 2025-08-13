@@ -46,6 +46,10 @@ from .parser import OpenAPIParser
     is_flag=True,
     help="Enable verbose output",
 )
+@click.option(
+    "--client-name",
+    help="Name for the generated client class (default: Client)",
+)
 def generate(
     config: Path | None,
     spec: str | None,
@@ -54,6 +58,7 @@ def generate(
     base_url: str | None,
     timeout: int | None,
     verbose: bool,
+    client_name: str | None,
 ) -> None:
     """Generate Python SDK from OpenAPI specification."""
     try:
@@ -85,6 +90,7 @@ def generate(
             base_url=base_url,
             timeout=timeout,
             verbose=verbose,
+            client_class_name=client_name,
         )
 
         if generation_config.verbose:
